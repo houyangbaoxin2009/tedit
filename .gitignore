@@ -1,0 +1,9 @@
+*.exe
+*.pdb
+*.ilk
+_obj/
+_probe*/
+rt_dir*/
+rt_file*
+_tiec_verify/
+.tiec-cache/

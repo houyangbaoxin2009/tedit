@@ -1,0 +1,185 @@
+type tie<logic>
+// src/lineedit.tie —— 行编辑模块（L2，p.9.3.2）：tie 自研行编辑状态机
+// --------------------------------------------------------------
+// 多行行编辑 / 键集 / 自动续行的**状态模型**，驱动字段为逐击键事件。架构 §7 自研
+// 纪律：零外部 readline。本先行批实现最小编辑能力：插入 / 退格 / 左右移动 / Home /
+// End / 历史上下。**复杂编辑（多行续行、括号自动补全、Ctrl-R 历史搜索）定界注明**
+// 留待交互后端（tedit 终端模组 / tty 前端）接入后深化。非 tty 输入（管道/脚本）自动
+// 降级为 read_line 直读（架构 §7 非 tty 降级）。
+//
+// EN: line-editing module (L2) — tie-native editing state machine driven by
+// per-keystroke events. Minimal set now: insert/backspace/left/right/home/end/
+// history. Complex editing (multi-line continuation, bracket auto-close, ctrl-R)
+// is deliberately out of scope for this batch and deferred to the tty/terminal
+// front-end. Non-tty input auto-degrades to read_line.
+
+// 编辑状态（文件顶层全局，命名空间内裸名访问）：
+var g_buf: string = ""
+var g_cur: i64 = 0          // 光标在 buffer 中的位置（字符索引）
+var g_hist_idx: i64 = 0     // 当前历史游标（-1 = 不在历史回放中）
+var g_hist_now: string = "" // 进入历史回放时的原始输入缓存
+
+namespace lineedit {
+
+// 复位编辑缓冲。
+pub func le_reset() {
+    g_buf = ""
+    g_cur = 0
+    g_hist_idx = -1
+    g_hist_now = ""
+}
+
+// 取得当前缓冲文本。
+pub func le_get() -> string {
+    return g_buf
+}
+
+// 取得光标位置。
+pub func le_cursor() -> i64 {
+    return g_cur
+}
+
+// 光标右移一格。
+pub func le_right() {
+    var n = str_len(g_buf)
+    if g_cur < n {
+        g_cur = g_cur + 1
+    }
+}
+
+// 光标左移一格。
+pub func le_left() {
+    if g_cur > 0 {
+        g_cur = g_cur - 1
+    }
+}
+
+// 光标移到行首。
+pub func le_home() {
+    g_cur = 0
+}
+
+// 光标移到行尾。
+pub func le_end() {
+    g_cur = str_len(g_buf)
+}
+
+// 在光标处插入字符 ch。
+pub func le_insert(ch: string) {
+    if g_cur <= 0 {
+        g_buf = ch + g_buf
+    } else if g_cur >= str_len(g_buf) {
+        g_buf = g_buf + ch
+    } else {
+        var left = sub(g_buf, 0, g_cur)
+        var right = sub(g_buf, g_cur, str_len(g_buf))
+        g_buf = left + ch + right
+    }
+    g_cur = g_cur + 1
+}
+
+// 删除光标前一字符（退格）。
+pub func le_backspace() {
+    if g_cur <= 0 {
+        return
+    }
+    if g_cur >= str_len(g_buf) {
+        g_buf = sub(g_buf, 0, g_cur - 1)
+    } else {
+        var left = sub(g_buf, 0, g_cur - 1)
+        var right = sub(g_buf, g_cur, str_len(g_buf))
+        g_buf = left + right
+    }
+    g_cur = g_cur - 1
+}
+
+// 删除光标处字符（Delete）→ 定为后端扩展，未在最小集（占位保签名稳定性）。
+pub func le_delete() {
+    var n = str_len(g_buf)
+    if g_cur >= n {
+        return
+    }
+    if g_cur + 1 >= n {
+        g_buf = sub(g_buf, 0, g_cur)
+    } else {
+        var left = sub(g_buf, 0, g_cur)
+        var right = sub(g_buf, g_cur + 1, n)
+        g_buf = left + right
+    }
+}
+
+// 历史回放：向上（更旧）。传入历史表（string 表）。命中日志历史则把 g_buf 换为该行。
+pub func le_hist_up(hist: table<string>) {
+    var n = hist_count(hist)
+    if n == 0 {
+        return
+    }
+    if g_hist_idx == -1 {
+        // 进入历史回放前保存当前行
+        g_hist_now = g_buf
+        g_hist_idx = n - 1
+    } else if g_hist_idx > 0 {
+        g_hist_idx = g_hist_idx - 1
+    } else {
+        return // 已在最旧
+    }
+    g_buf = at_n(hist, g_hist_idx)
+    g_cur = str_len(g_buf)
+}
+
+// 历史回放：向下（更新）。回到原始输入后复位。
+pub func le_hist_down(hist: table<string>) {
+    var n = hist_count(hist)
+    if n == 0 || g_hist_idx == -1 {
+        return
+    }
+    g_hist_idx = g_hist_idx + 1
+    if g_hist_idx < n {
+        g_buf = at_n(hist, g_hist_idx)
+    } else {
+        g_buf = g_hist_now
+        g_hist_idx = -1
+    }
+    g_cur = str_len(g_buf)
+}
+
+// 提交当前行：清空缓冲，返回已经控制权交接前的文本（历史记录由调用方负责）。
+pub func le_accept() -> string {
+    var line = g_buf
+    le_reset()
+    return line
+}
+
+// ---- 内部 ----
+func sub(s: string, lo: i64, hi: i64) -> string {
+    var out = ""
+    var i: i64 = lo
+    var n = str_len(s)
+    if hi > n { hi = n }
+    while i < hi {
+        out = out + str_char(s, i)
+        i = i + 1
+    }
+    return out
+}
+
+func hist_count(hist: table<string>) -> i64 {
+    var n: i64 = 0
+    for _x in hist {
+        n = n + 1
+    }
+    return n
+}
+
+func at_n(hist: table<string>, idx: i64) -> string {
+    var i: i64 = 0
+    for x in hist {
+        if i == idx {
+            return x
+        }
+        i = i + 1
+    }
+    return ""
+}
+
+}   // namespace lineedit

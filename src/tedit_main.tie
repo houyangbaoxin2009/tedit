@@ -1,0 +1,67 @@
+type tie<logic>
+import "./lineedit.tie"
+import "./complete.tie"
+import "./command.tie"
+import "./session.tie"
+import "./render.tie"
+// src/tedit_main.tie —— tedit 独立核心入口（v0 种子装配）
+// --------------------------------------------------------------
+// tedit 是为 tie 语言生态打造的通用编辑器：完全模块化、插件化、高效、低内存
+// 占用，完全由 tie 实现。本入口当前装配「会话层子集」（lineedit + complete +
+// command + session + render），即原 tshell tedit 终端模组子集（架构 §12.4）
+// 独立后的最小可运行宿主：会话加载、行编辑缓冲、补全候选、命令分派、会话保存。
+//
+// 插件化路线与目标形态（对齐 vscode / blender / unity / ps / ae / pr / dw 级
+// 能力版图）见 docs/architecture.md；动态加载依赖 trm Backend（p.7.3），v1
+// 插件为静态 import 装配式。
+//
+// EN: tedit standalone core entry (v0 seed assembly). tedit is a general-purpose
+// editor for the tie ecosystem: fully modular, plugin-based, efficient, low
+// memory footprint, implemented purely in tie. This entry currently assembles
+// the session-layer subset (lineedit + complete + command + session + render),
+// the minimal runnable host extracted from the former tshell tedit terminal
+// module: session load, line-edit buffer, completion candidates, command
+// dispatch, session save. See docs/architecture.md for the plugin route and
+// the target capability map.
+
+func main() -> i64 {
+    session.ss_load()
+    println("[tedit] 会话层子集装配：lineedit + complete + command + session + render")
+    // 行编辑缓冲演示
+    lineedit.le_reset()
+    lineedit.le_insert("l")
+    lineedit.le_insert("s")
+    var buf = lineedit.le_get()
+    println("缓冲区=" + buf)
+    // 补全：对缓冲的 token 求候选
+    var cands = complete.cpl_candidates(buf, 2)
+    var hitLs = false
+    for c in cands {
+        if c == "ls" { hitLs = true }
+    }
+    println("补全命中 ls=" + bool_str(hitLs))
+    // 命令分派：ls（内建）
+    var toks = split_words("ls")
+    var out = command.c_exec(toks)
+    if out == "?" {
+        println("[tedit] 未知命令")
+    } else {
+        println("[tedit] 命令输出首行如下（ls 当前目录）:")
+        render.r_emit(out)
+    }
+    // 会话保存
+    session.ss_save()
+    println("[tedit] 子集装配完成")
+    return 0
+}
+
+func bool_str(b: bool) -> string {
+    if b { return "true" }
+    return "false"
+}
+
+func split_words(s: string) -> table<string> {
+    var out = table_new_string()
+    table_push(out, s)
+    return out
+}
