@@ -2,14 +2,14 @@ type tie<logic>
 // src/backend_interp.tie —— 求值后端委托（interp 后端，现役默认）
 // --------------------------------------------------------------
 // REPL 求值内核**只对接不实现**（架构 §2）：tie 表达式/脚本由 tiec 自举解释器的
-// `interp.eval` 求值。本模块薄委托，隔离 tiec 依赖到单点，便于按 `set eval-backend`
-// 切 trm 引擎后端（observe，p.9.3.5）。依赖 tiec 与 tshell 为同一工作区兄弟目录。
+// `interp.eval` 求值。本模块薄委托，隔离 tiec 依赖到单点（后端经 `set eval-backend` 配置，见 observe）。
+// 依赖 tiec 为本仓同级目录。
 
 import "../../tiec/compiler/interp/interp.tie"
 
 namespace backend_interp {
 
-// 当前求值后端标识（interp 现役；trm 为配置位，p.9.3.5）。
+// 当前求值后端标识（interp 现役）。
 pub func b_backend() -> string {
     return "interp"
 }

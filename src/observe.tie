@@ -1,19 +1,18 @@
 type tie<logic>
 import "./session.tie"
 import "./sh_util.tie"
-// src/observe.tie —— trm 基础设施模块（L0，p.9.3.5）：observe 骨架 + 执行后端可配置
+// src/observe.tie —— 求值后端配置 + 观测骨架模块（L0）
 // --------------------------------------------------------------
-// tshell 作为 trm 的交互面（架构 §10）：tieir 观测台 / 调试前端（断点·单步·栈帧
-// 内省）/ 动态加载交互 / 可配置 REPL 执行后端。本子项**务实定界**：
-//   · 落 `observe` 模块骨架 + `set eval-backend interp|trm`（interp 现役默认；trm
-//     后端注册为**配置位**，真实接入依赖 trm 引擎 Backend 接口，随 p.7.3 异步提供）；
-//   · tieir 观测若需 trm 产物（tieir 字节码 / 类加载器 / 对象模型）则**注明接口等待**，
-//     本批只留骨架与诊断文案，不造占位假实现。
+// 观测台 / 调试前端（断点·单步·栈帧内省）/ 动态加载交互 / 可配置 REPL 执行后端。
+// 本模块**务实定界**：
+//   · `set eval-backend interp`（interp 现役默认；后端经配置位管理）；
+//   · tieir 观测/调试/动态加载在依赖的能力落地前**注明接口等待**，只留骨架与
+//     诊断文案，不造占位假实现。
 //
-// EN: trm-infrastructure observe module (skeleton) + configurable eval backend.
-// interp is active now; trm backend is a registration slot (depends on trm
-// Backend interface, lands async with p.7.3). tieir observation is declared
-// "interface pending" where it needs trm artifacts — no fake stubs.
+// EN: observe module — configurable eval backend + observation skeleton.
+// interp is the active backend (config-managed). tieir observation / debug /
+// dynamic loading are declared "interface pending" until the underlying
+// capabilities land — no fake stubs.
 
 namespace observe {
 
@@ -27,19 +26,14 @@ pub func o_backend() -> string {
     return b
 }
 
-// 设置求值后端。interp 现役；trm 为配置位（可写、标注依赖，暂不切换求值语义）。
-// 返回执行结果/提示文本。
+// 设置求值后端。interp 现役。返回执行结果/提示文本。
 pub func o_set_backend(name: string) -> string {
     var n = sh_util.u_trim(name)
     if n == "interp" {
         set_cfg("interp")
         return "eval-backend: interp（现役，tie-interp 快速路径）"
     }
-    if n == "trm" {
-        set_cfg("trm")
-        return "eval-backend: trm（配置位已记；真接依赖 trm 引擎 Backend 接口，随 p.7.3 接入）"
-    }
-    return "eval-backend: 未知后端 '" + n + "'（可选 interp | trm）"
+    return "eval-backend: 未知后端 '" + n + "'（可选 interp）"
 }
 
 // 把当前后端写回配置（td 资产）。
@@ -73,21 +67,21 @@ func key_eq(r: string, key: string) -> bool {
     return false
 }
 
-// ---- tieir 观测/调试前端（骨架；依赖 trm 产物时注明接口等待）----
-// 反汇编：需要 tieir 字节码产物（trm 对象模型 / 类加载器）才能指令级展示。
+// ---- tieir 观测/调试前端（骨架）----
+// 反汇编：需要 tieir 字节码产物才能指令级展示。
 // 本批优雅返回「接口等待」说明，不伪造反汇编输出。
 pub func o_disasm(ir: string) -> string {
-    return "[observe] tieir 反汇编：接口等待 — 需要 trm 引擎 tieir 字节码/类加载器产物（p.7.3），本批未接入"
+    return "[observe] tieir 反汇编：接口等待 — 需要 tieir 字节码产物，本批未接入"
 }
 
-// 断点 / 单步：需要 trm 引擎执行钩子（invoke/step），p.7.3 提供。
+// 断点 / 单步：需要执行钩子（invoke/step）。
 pub func o_step(name: string) -> string {
-    return "[observe] 调试前端（断点/单步/栈帧内省）：接口等待 — 依赖 trm 引擎 Backend invoke/step（p.7.3）"
+    return "[observe] 调试前端（断点/单步/栈帧内省）：接口等待 — 依赖执行钩子 invoke/step"
 }
 
-// 动态加载交互：需 trm 反射 + tieir 类加载器。
+// 动态加载交互：待动态加载方案定案后接入。
 pub func o_dynload(module: string) -> string {
-    return "[observe] 动态加载交互：接口等待 — 依赖 trm 反射 + tieir 类加载器（p.7.3）"
+    return "[observe] 动态加载交互：接口等待 — 待动态加载方案定案"
 }
 
 }   // namespace observe

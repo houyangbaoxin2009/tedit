@@ -6,7 +6,7 @@ import "./command.tie"
 // 架构 §7 补全综合顺序：内建命令 → PATH 可执行 → tie 标识符（当前作用域）→
 // 文件路径 →（td/zd 资产，扩展点）。本先行批实现可独立验证的基础源：
 // 内建命令 + 当前目录文件路径；PATH 可执行源留作注册点（首次使用惰性加载），
-// tie 标识符源依赖作用域反射（待 trm）为扩展槽位。候选按前缀前缀匹配返回。
+// tie 标识符源依赖作用域反射，为扩展槽位。候选按前缀前缀匹配返回。
 //
 // EN: completion module (L2) — pluggable completion sources + candidate
 // generation. This batch ships cwd file-path + builtin-command base sources;
@@ -62,7 +62,7 @@ func add_builtin(out: table<string>, prefix: string) {
     }
 }
 
-// —— 补全源注册点（扩展接口的契约占位；实际源由生态组件/trm 注册）——
+// —— 补全源注册点（扩展接口的契约占位；实际源由生态组件/宿主注册）——
 // 当前实现内建了 cwd + builtin 两源；PATH 源 / tie 标识符源在此留位，后续按
 // 「补全源注册接口」（对齐 tedit 贡献点思路）接入。判定命中数供 REPL 决定：
 // 1 个→直接补全；多个→列候选。

@@ -55,7 +55,7 @@ v0 = 原 tshell tedit 终端模组子集独立（来源：tshell-architecture §
 | `render` | L2 | 输出渲染 | 前端只消费协议数据 |
 | `sh_util` | L1 | 工具函数 | token 拆分等 |
 | `backend_interp` | L1 | interp 求值后端 | 桥接 tiec `compiler/interp`（同级克隆依赖） |
-| `observe` | L2 | 观测/eval-backend | 动态嵌入接线点（trm Backend） |
+| `observe` | L2 | 求值后端配置 + 观测骨架 | tieir 观测/调试/动态加载留「接口等待」骨架 |
 
 ## 5. 插件规范 v1（已定案部分）
 
@@ -71,13 +71,12 @@ v0 = 原 tshell tedit 终端模组子集独立（来源：tshell-architecture §
 * **钩子**：固定命名导出 —— `plugin_on_load(ctx: i64) -> i64`（`ctx` 预留）/
   `plugin_on_unload() -> i64` / `plugin_commands() -> table<string>`（命令名
   表）+ 命令处理器约定命名 `cmd_<命令名>(args: table<string>) -> string`。
-* **v2（动态加载）**：依赖 trm 引擎 Backend 接口（引擎级 GC/反射/热更），
-  接口落地后另行定案，本版不写未定案细节。
+* **v2（动态加载）**：待纯 tie 动态加载方案定案后另行开放，本版不写未定案细节。
 
 *EN: v1 = static assembly (host imports plugin modules; unused modules trimmed
 at compile time); manifest = `plugin.zd` (id/name/version/license/entry);
 fixed-name hooks (`plugin_on_load` / `plugin_on_unload` / `plugin_commands`).
-v2 dynamic loading awaits the trm Backend interface and is out of scope here.*
+v2 dynamic loading is out of scope here until a pure-tie approach is settled.*
 
 ## 6. 构建
 

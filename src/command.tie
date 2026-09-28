@@ -156,7 +156,7 @@ func cmd_set(args: table<string>) -> string {
     if sh_util.u_len(args) < 2 {
         return "set <NAME> <VALUE>"
     }
-    // set eval-backend interp|trm —— 委托 observe（p.9.3.5）
+    // set eval-backend interp —— 委托 observe
     if args[0] == "eval-backend" {
         return observe.o_set_backend(args[1])
     }

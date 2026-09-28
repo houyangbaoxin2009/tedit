@@ -71,15 +71,15 @@ v0 从 tshell 的 tedit 终端模组子集（原 tshell-architecture §12.4）�
 
 ## 插件规范（v1）
 
-v1 插件为**静态装配式**（tie 静态 import 文本内联；动态加载依赖 trm 引擎
-Backend 接口，接入后开放 v2 规范）。参考实现见 `tedit-plugin-example` 仓：
+v1 插件为**静态装配式**（tie 静态 import 文本内联；动态加载为 v2，待纯 tie
+方案定案后开放）。参考实现见 `tedit-plugin-example` 仓：
 清单 = 插件仓根 `plugin.data.tie`（tie:data 明文，正文即 tie 表字面量，
 tie-spec 20262 §17.1；分发可经 `--compress-data` 编为 zd，语义不变），钩子
 约定 `plugin_on_load` / `plugin_on_unload` / `plugin_commands` + 命令处理器
 `cmd_<命令名>`。注意 tie 表字面量不支持尾逗号。
 
 *EN: v1 plugins assemble statically (tie static import); the dynamic route
-awaits the trm Backend interface (v2 spec). See the `tedit-plugin-example`
+awaits a settled pure-tie approach (v2 spec). See the `tedit-plugin-example`
 repo for the reference implementation: manifest + fixed-name hooks, imported
 by the host assembly.*
 

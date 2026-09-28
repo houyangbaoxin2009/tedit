@@ -12,8 +12,8 @@ import "./render.tie"
 // 独立后的最小可运行宿主：会话加载、行编辑缓冲、补全候选、命令分派、会话保存。
 //
 // 插件化路线与目标形态（对齐 vscode / blender / unity / ps / ae / pr / dw 级
-// 能力版图）见 docs/architecture.md；动态加载依赖 trm Backend（p.7.3），v1
-// 插件为静态 import 装配式。
+// 能力版图）见 docs/architecture.md；动态加载（v2）待动态加载方案定案后开放，
+// v1 插件为静态 import 装配式。
 //
 // EN: tedit standalone core entry (v0 seed assembly). tedit is a general-purpose
 // editor for the tie ecosystem: fully modular, plugin-based, efficient, low
