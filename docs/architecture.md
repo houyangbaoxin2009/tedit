@@ -71,6 +71,10 @@ v0 = 原 tshell tedit 终端模组子集独立（来源：tshell-architecture §
 * **钩子**：固定命名导出 —— `plugin_on_load(ctx: i64) -> i64`（`ctx` 预留）/
   `plugin_on_unload() -> i64` / `plugin_commands() -> table<string>`（命令名
   表）+ 命令处理器约定命名 `cmd_<命令名>(args: table<string>) -> string`。
+* **包布局**：插件目录布局与各目录消费者见 [plugin-layout.md](plugin-layout.md)
+  —— `class/` 内部库、`api/` 对外契约、`extern/` 原生依赖（清单 `extern`
+  必填声明）、`script/` 运行时脚本、`config/` 插件私有配置、`ui/`、`assets/`。
+  内核纯 tie 铁律不约束插件开发者（插件可携原生扩展）。
 * **v2（动态加载）**：待纯 tie 动态加载方案定案后另行开放，本版不写未定案细节。
 
 *EN: v1 = static assembly (host imports plugin modules; unused modules trimmed
