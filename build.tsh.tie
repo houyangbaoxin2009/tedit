@@ -4,8 +4,10 @@ type tie<tsh>
 //        (set env TIE_BUILD_NOCACHE=1 to pass --no-cache to tiec)
 // Requires the tiec compiler as a sibling checkout of this repo:
 //   ../tiec/compiler/tiec.exe   (stage0 is enough)
-// Builds one assembly from src/*.tie:
-//   src\tedit_main.exe   tedit core host (session-layer subset)
+// Output (build artifacts never live in src/):
+//   build/demo/tedit_main.exe   core host (session-layer subset)
+// NOTE(exec-code-async): exec_code returns before the child process finishes
+// (tsh p.9216 §4) — the artifact check is gated by a sleep_ms poll loop.
 // NOTE(tsh-limitation): the tsh interp cannot issue a conditional `exit N`,
 // so on the tiec-missing / compile-fail path this logs the problem but the
 // process still returns 0.
@@ -15,8 +17,23 @@ if !file_exists(tiec) { println("[build] tiec stage0 not found: " + tiec) }
 if !file_exists(tiec) { println("[build] please clone tie-lang/tiec as a sibling of this repo.") }
 var opts = ""
 if get_env("TIE_BUILD_NOCACHE") == "1" { opts = "--no-cache " }
-println("[build] compiling src/tedit_main.tie")
-var rc1 = exec_code("cd /d \"" + root + "\" && ..\\tiec\\compiler\\tiec.exe " + opts + "\"src/tedit_main.tie\"")
+
+// 轮询等待产物落盘（100ms × 上限 300 次 = 30s）。
+func wait_for(p: string) -> bool {
+    var spins = 0
+    while spins < 300 {
+        if file_exists(p) { return true }
+        sleep_ms(100)
+        spins = spins + 1
+    }
+    return false
+}
+
+mkdir_all("build/demo")
+
+println("[build] compiling src/tedit_main.tie -> build/demo/")
+var rc1 = exec_code("cd /d \"" + root + "\" && ..\\tiec\\compiler\\tiec.exe " + opts + "\"src/tedit_main.tie\" -o \"build\\demo\\tedit_main.exe\"")
 if rc1 != 0 { println("[build] compile failed: src/tedit_main.tie (rc=" + to_string(rc1) + ")") }
-println("[build] done: src\\tedit_main.exe (tedit core host)")
+if !wait_for("build/demo/tedit_main.exe") { println("[build] timeout: build/demo/tedit_main.exe") }
+println("[build] done: build\\demo\\tedit_main.exe")
 exit 0

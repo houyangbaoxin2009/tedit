@@ -88,14 +88,16 @@ by the host assembly.*
 需要 tiec 编译器（stage0 即可）作为本仓的**同级克隆**：`../tiec/compiler/tiec.exe`。
 
 ```tsh
-tsh_main.exe -f build.tsh.tie        # 产物 src/tedit_main.exe
+tsh_main.exe -f build.tsh.tie        # 产物 build/demo/tedit_main.exe
 ```
 
 或直接：
 
 ```sh
-../tiec/compiler/tiec.exe src/tedit_main.tie
+../tiec/compiler/tiec.exe src/tedit_main.tie -o build/demo/tedit_main.exe
 ```
+
+构建产物一律不进 `src/`（落 `build/`，gitignored）。
 
 ## 路线（ROAD）
 

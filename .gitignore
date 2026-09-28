@@ -7,3 +7,6 @@ rt_dir*/
 rt_file*
 _tiec_verify/
 .tiec-cache/
+build/**
+!build/**/
+!build/**/.gitkeep
