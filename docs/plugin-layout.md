@@ -98,3 +98,21 @@ runtime layer (plugin-private, not audited by the host).*
 imported; `tie<tsh>` evaluated via `b_eval_script`). Loading is initiated by
 the plugin; interp globals are shared with the host — prefix isolation is the
 plugin's responsibility.*
+
+## 7. 分发形态：.tedit 包
+
+* **容器**：`.tedit` = **zip 容器**（扩展名 .tedit）。v0 由内核 `src/zip.tie`
+  的存储法（STORE，不压缩）写入端产出，标准 zip 读取端（解压器/资源管理器）
+  直接可开；deflate 与 zip64 随载荷规模需要再补。
+* **必备条目**：`plugin.zd`（清单二进制形态，`tiec --compress-data` 产出）+
+  `plugin.data.tie`（清单明文形态，人类可读对账）+ `LICENSE`。载荷目录
+  （assets/extern/ui 等）随插件运行时接入扩展。
+* **命名草案**：`<id 的点换连字符>-<version>.tedit`（如 `example.greet` +
+  `0.1.0` → `example-greet-0.1.0.tedit`）。
+* **确定性**：v0 写入端固定 DOS 时间戳（2026-09-28 00:00:00）—— 同输入同包。
+
+*EN: the distribution unit is a `.tedit` file — a zip container. v0 ships a
+pure-tie STORE-method writer in the kernel (`src/zip.tie`); required entries:
+`plugin.zd` + `plugin.data.tie` + `LICENSE`, payload dirs extend as the plugin
+runtime lands. Naming draft: `<id with dots as dashes>-<version>.tedit`.
+Fixed DOS timestamp keeps builds deterministic.*

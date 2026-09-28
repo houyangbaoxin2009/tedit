@@ -1,0 +1,141 @@
+type tie<logic>
+// src/zip.tie —— 最小 zip（STORE）容器写入器（.tedit 包基座）
+// --------------------------------------------------------------
+// .tedit 分发单元 = zip 容器（规范基准：docs/plugin-layout.md「分发形态」）。
+// 本模块只落**存储法（method 0，不压缩）**的最小合规写入端：本地文件头 +
+// 中央目录 + EOCD，CRC32-IEEE 校验。足够承载清单 zd / 明文 / LICENSE 等小
+// 载荷；deflate 压缩与 zip64 随载荷规模需要再补。
+// 字节面：依赖 tiec 原生 byte_read / byte_write（libc "rb"/"wb"，字节透明）。
+// 时间戳：v0 固定 2026-09-28 00:00:00（DOS 格式）——确定性构建，同输入同包。
+//
+// EN: minimal zip (STORE) container writer — the base of the .tedit
+// distribution unit. Local file headers + central directory + EOCD, CRC32-IEEE;
+// deflate/zip64 deferred. Built on tiec native byte_read/byte_write. Fixed DOS
+// timestamp for deterministic builds.
+
+namespace zip {
+
+// CRC32-IEEE（多项式 0xEDB88320；检查向量 crc32("123456789")==0xCBF43926，
+// 与 zd 帧协议同族）。按 [off, off+n) 区间计算。
+pub func z_crc32_range(data: table<i64>, off: i64, n: i64) -> i64 {
+    var crc: i64 = 0xFFFFFFFF
+    var i = off
+    var end = off + n
+    while i < end {
+        crc = crc ^ (data[i] & 0xFF)
+        var k: i64 = 0
+        while k < 8 {
+            if (crc & 1) != 0 {
+                crc = (crc >> 1) ^ 0xEDB88320
+            } else {
+                crc = crc >> 1
+            }
+            crc = crc & 0xFFFFFFFF
+            k = k + 1
+        }
+        i = i + 1
+    }
+    return (crc ^ 0xFFFFFFFF) & 0xFFFFFFFF
+}
+
+// 小端写入辅助（LSB 先行）。
+func push_le16(out: table<i64>, v: i64) {
+    table_push(out, v & 0xFF)
+    table_push(out, (v >> 8) & 0xFF)
+}
+
+func push_le32(out: table<i64>, v: i64) {
+    table_push(out, v & 0xFF)
+    table_push(out, (v >> 8) & 0xFF)
+    table_push(out, (v >> 16) & 0xFF)
+    table_push(out, (v >> 24) & 0xFF)
+}
+
+// ASCII 名字逐字符推入（名字按规范为 ASCII 路径；str_len == 字节数）。
+func push_name(out: table<i64>, nm: string) {
+    var j: i64 = 0
+    var n = str_len(nm)
+    while j < n {
+        table_push(out, char_code(str_char(nm, j)))
+        j = j + 1
+    }
+}
+
+// 写出 .tedit（zip STORE）。names/datas 一一对应；返回 0 成功，-1 参数不齐，
+// -2 落盘失败。条目名建议 ASCII；条目数 < 65536；单条目 < 4GB（zip64 未落）。
+pub func zw_write(out_path: string, names: table<string>, datas: table<table<i64>>) -> i64 {
+    if len(names) != len(datas) {
+        return -1
+    }
+    var out = table_new_i64()
+    var offs = table_new_i64()
+    var crcs = table_new_i64()
+    var sizes = table_new_i64()
+    // DOS 时间戳：2026-09-28 00:00:00（确定性构建）。
+    var dos_date: i64 = 0x5D3C
+    var dos_time: i64 = 0
+    var idx: i64 = 0
+    for d in datas {
+        table_push(offs, len(out))
+        var crc = z_crc32_range(d, 0, len(d))
+        table_push(crcs, crc)
+        table_push(sizes, len(d))
+        // 本地文件头
+        push_le32(out, 0x04034b50)
+        push_le16(out, 20)          // version needed
+        push_le16(out, 0)           // flags
+        push_le16(out, 0)           // method 0 = STORE
+        push_le16(out, dos_time)
+        push_le16(out, dos_date)
+        push_le32(out, crc)
+        push_le32(out, len(d))      // csize
+        push_le32(out, len(d))      // usize
+        push_le16(out, str_len(names[idx]))
+        push_le16(out, 0)           // extra len
+        push_name(out, names[idx])
+        for b in d {
+            table_push(out, b & 0xFF)
+        }
+        idx = idx + 1
+    }
+    // 中央目录
+    var cd_off = len(out)
+    var idx2: i64 = 0
+    for nm2 in names {
+        push_le32(out, 0x02014b50)
+        push_le16(out, 20)          // version made by
+        push_le16(out, 20)          // version needed
+        push_le16(out, 0)           // flags
+        push_le16(out, 0)           // method
+        push_le16(out, dos_time)
+        push_le16(out, dos_date)
+        push_le32(out, crcs[idx2])
+        push_le32(out, sizes[idx2])
+        push_le32(out, sizes[idx2])
+        push_le16(out, str_len(nm2))
+        push_le16(out, 0)           // extra len
+        push_le16(out, 0)           // comment len
+        push_le16(out, 0)           // disk start
+        push_le16(out, 0)           // internal attrs
+        push_le32(out, 0)           // external attrs
+        push_le32(out, offs[idx2])
+        push_name(out, nm2)
+        idx2 = idx2 + 1
+    }
+    var cd_size = len(out) - cd_off
+    // EOCD
+    push_le32(out, 0x06054b50)
+    push_le16(out, 0)
+    push_le16(out, 0)
+    push_le16(out, len(names))
+    push_le16(out, len(names))
+    push_le32(out, cd_size)
+    push_le32(out, cd_off)
+    push_le16(out, 0)
+    if byte_write(out_path, out) {
+        return 0
+    }
+    return -2
+}
+
+}   // namespace zip
