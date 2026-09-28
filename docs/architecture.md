@@ -61,10 +61,16 @@ v0 = 原 tshell tedit 终端模组子集独立（来源：tshell-architecture §
 
 * **装配形态**：v1 插件为静态装配式 —— 宿主入口 `import` 插件模块（tie 静态
   import 文本内联，tiec 编译期按装配裁剪未用模块，零运行时依赖）。
-* **清单（manifest）**：插件仓根 `plugin.zd`（zd 值语义）：`id` / `name` /
-  `version` / `license` / `entry`。
-* **钩子**：固定命名导出 —— `plugin_on_load(ctx)` / `plugin_on_unload()` /
-  `plugin_commands()`（注册命令表）。参考实现：`tedit-plugin-example` 仓。
+* **清单（manifest）**：插件仓根 `plugin.data.tie` —— tie:data 明文形态
+  （文件角色 `tie<data>`，正文即 tie 表字面量，规范基准 tie-spec 20262
+  §17.1「解析由编译器背书」），字段 `id` / `name` / `version` / `license` /
+  `entry`。加载路径：`file_read` 读入 → interp 求值（正文即 tie 表字面量）。
+  分发时可经 `tiec --compress-data plugin.data.tie -o plugin.zd` 单向编译为
+  zd 二进制（tie:zd，语义不变）。**注意：tie 表字面量不支持尾逗号**
+  （`..., ]` 报 E00000）。
+* **钩子**：固定命名导出 —— `plugin_on_load(ctx: i64) -> i64`（`ctx` 预留）/
+  `plugin_on_unload() -> i64` / `plugin_commands() -> table<string>`（命令名
+  表）+ 命令处理器约定命名 `cmd_<命令名>(args: table<string>) -> string`。
 * **v2（动态加载）**：依赖 trm 引擎 Backend 接口（引擎级 GC/反射/热更），
   接口落地后另行定案，本版不写未定案细节。
 
