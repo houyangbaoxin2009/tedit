@@ -10,3 +10,6 @@ _tiec_verify/
 build/**
 !build/**/
 !build/**/.gitkeep
+# tpkg 规范
+target/
+_local_only/
