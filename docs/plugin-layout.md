@@ -101,9 +101,10 @@ plugin's responsibility.*
 
 ## 7. 分发形态：.tedit 包
 
-* **容器**：`.tedit` = **zip 容器**（扩展名 .tedit）。v0 由内核 `src/zip.tie`
-  的存储法（STORE，不压缩）写入端产出，标准 zip 读取端（解压器/资源管理器）
-  直接可开；deflate 与 zip64 随载荷规模需要再补。
+* **容器**：`.tedit` = **tzp 归档容器**（扩展名 .tedit；tzp 格式族，rANS 熵层）。
+  写入端 `tzp_pack` / 读取端 `tzp_unpack`（标准库 `tlib/std/tzp.tie`）。
+  历史：v0 因 tzp 尚未落地，曾用内核 `src/zip.tie` 的存储法（STORE）产出；
+  tzp 落地后切换（旧 zip 容器仍可被通用解压器/资源管理器打开）。
 * **必备条目**：`plugin.zd`（清单二进制形态，`tiec --compress-data` 产出）+
   `plugin.data.tie`（清单明文形态，人类可读对账）+ `LICENSE`。载荷目录
   （assets/extern/ui 等）随插件运行时接入扩展。
